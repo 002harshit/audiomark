@@ -13,18 +13,13 @@
 #ifndef __TH_TYPES_H
 #define __TH_TYPES_H
 
-#define TH_FLOAT32_TYPE float
+#include "riscv_audiomark.h"
+#include "smallft.h"
 
-#ifndef TH_MATRIX_INSTANCE_FLOAT32_TYPE
-#warning "Please define a float32 matrix instance type"
-#endif
+#define TH_FLOAT32_TYPE riscv_f32_t
 
-#ifndef TH_RFFT_INSTANCE_FLOAT32_TYPE
-#warning "Please define a float32 real FFT instance type"
-#endif
-
-#ifndef TH_CFFT_INSTANCE_FLOAT32_TYPE
-#warning "Please define a float32 complex FFT instance type"
-#endif
+#define TH_MATRIX_INSTANCE_FLOAT32_TYPE riscv_matrix_f32_t
+#define TH_RFFT_INSTANCE_FLOAT32_TYPE riscv_rfft_f32_t
+#define TH_CFFT_INSTANCE_FLOAT32_TYPE riscv_cfft_f32_t
 
 #endif /* __TH_TYPES_H */
