@@ -89,7 +89,13 @@ th_memset(void *b, int c, size_t len)
 ee_status_t
 th_cfft_init_f32(ee_cfft_f32_t *p_instance, int fft_length)
 {
+#if IS_RISCV_P_EXT_SUPPORTED
+    #warning "() not implemented"
+#elif IS_RISCV_V_EXT_SUPPORTED
+    return vext_riscv_cfft_init_f32(p_instance, fft_length);
+#else
     return s_riscv_cfft_init_f32(p_instance, fft_length);
+#endif
 }
 
 void
@@ -98,13 +104,25 @@ th_cfft_f32(ee_cfft_f32_t *p_instance,
             uint8_t        ifftFlag,
             uint8_t        bitReverseFlagR)
 {
+#if IS_RISCV_P_EXT_SUPPORTED
+    #warning "th_cfft_f32() not implemented"
+#elif IS_RISCV_V_EXT_SUPPORTED
+    vext_riscv_cfft_f32(p_instance, p_buf, ifftFlag, bitReverseFlagR);
+#else
     s_riscv_cfft_f32(p_instance, p_buf, ifftFlag, bitReverseFlagR);
+#endif
 }
 
 ee_status_t
 th_rfft_init_f32(ee_rfft_f32_t *p_instance, int fft_length)
 {
+#if IS_RISCV_P_EXT_SUPPORTED
+    #warning "th_rfft_init_f32() not implemented"
+#elif IS_RISCV_V_EXT_SUPPORTED
+    return vext_riscv_rfft_init_f32(p_instance, fft_length);
+#else
     return s_riscv_rfft_init_f32(p_instance, fft_length);
+#endif
 }
 
 void
@@ -113,7 +131,13 @@ th_rfft_f32(ee_rfft_f32_t *p_instance,
             ee_f32_t      *p_out,
             uint8_t        ifftFlag)
 {
+#if IS_RISCV_P_EXT_SUPPORTED
+    #warning "th_rfft_f32() not implemented"
+#elif IS_RISCV_V_EXT_SUPPORTED
+    vext_riscv_rfft_f32(p_instance, p_in, p_out, ifftFlag);
+#else
     s_riscv_rfft_f32(p_instance, p_in, p_out, ifftFlag);
+#endif
 }
 
 void
@@ -122,7 +146,13 @@ th_absmax_f32(const ee_f32_t *p_in,
               ee_f32_t       *p_max,
               uint32_t       *p_index)
 {
+#if IS_RISCV_P_EXT_SUPPORTED
+    #warning "th_absmax_f32() not implemented"
+#elif IS_RISCV_V_EXT_SUPPORTED
+    vext_riscv_absmax_f32(p_in, len, p_max, p_index);
+#else
     s_riscv_absmax_f32(p_in, len, p_max, p_index);
+#endif
 }
 
 void
@@ -131,13 +161,26 @@ th_cmplx_mult_cmplx_f32(const ee_f32_t *p_a,
                         ee_f32_t       *p_c,
                         uint32_t        len)
 {
+#if IS_RISCV_P_EXT_SUPPORTED
+    #warning "th_cmplx_mult_cmplx_f32() not implemented"
+#elif IS_RISCV_V_EXT_SUPPORTED
+    vext_riscv_cmplx_mult_cmplx_f32(p_a, p_b, p_c, len);
+#else
     s_riscv_cmplx_mult_cmplx_f32(p_a, p_b, p_c, len);
+#endif
 }
 
 void
 th_cmplx_conj_f32(const ee_f32_t *p_a, ee_f32_t *p_c, uint32_t len)
 {
+#if IS_RISCV_P_EXT_SUPPORTED
+    #warning "th_cmplx_conj_f32() not implemented"
+#elif IS_RISCV_V_EXT_SUPPORTED
+    vext_riscv_cmplx_conj_f32(p_a, p_c, len);
+#else
     s_riscv_cmplx_conj_f32(p_a, p_c, len);
+#endif
+
 }
 
 void
@@ -147,77 +190,153 @@ th_cmplx_dot_prod_f32(const ee_f32_t *p_a,
                       ee_f32_t       *p_r,
                       ee_f32_t       *p_i)
 {
+#if IS_RISCV_P_EXT_SUPPORTED
+    #warning "th_cmplx_dot_prod_f32() not implemented"
+#elif IS_RISCV_V_EXT_SUPPORTED
+    vext_riscv_cmplx_dot_prod_f32(p_a, p_b, len, p_r, p_i);
+#else
     s_riscv_cmplx_dot_prod_f32(p_a, p_b, len, p_r, p_i);
+#endif
 }
 
 void
 th_int16_to_f32(const int16_t *p_src, ee_f32_t *p_dst, uint32_t len)
 {
+#if IS_RISCV_P_EXT_SUPPORTED
+    #warning "th_int16_to_f32() not implemented"
+#elif IS_RISCV_V_EXT_SUPPORTED
+    vext_riscv_int16_to_f32(p_src, p_dst, len);
+#else
     s_riscv_int16_to_f32(p_src, p_dst, len);
+#endif
 }
 
 void
 th_f32_to_int16(const ee_f32_t *p_src, int16_t *p_dst, uint32_t len)
 {
+#if IS_RISCV_P_EXT_SUPPORTED
+    #warning "th_f32_to_int16() not implemented"
+#elif IS_RISCV_V_EXT_SUPPORTED
+    vext_riscv_f32_to_int16(p_src, p_dst, len);
+#else
     s_riscv_f32_to_int16(p_src, p_dst, len);
+#endif
 }
 
 void
 th_add_f32(ee_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c, uint32_t len)
 {
+#if IS_RISCV_P_EXT_SUPPORTED
+    #warning "th_add_f32() not implemented"
+#elif IS_RISCV_V_EXT_SUPPORTED
+    vext_riscv_add_f32(p_a, p_b, p_c, len);
+#else
     s_riscv_add_f32(p_a, p_b, p_c, len);
+#endif
 }
 
 void
 th_subtract_f32(ee_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c, uint32_t len)
 {
+#if IS_RISCV_P_EXT_SUPPORTED
+    #warning "th_subtract_f32() not implemented"
+#elif IS_RISCV_V_EXT_SUPPORTED
+    vext_riscv_subtract_f32(p_a, p_b, p_c, len);
+#else
     s_riscv_subtract_f32(p_a, p_b, p_c, len);
+#endif
 }
 
 void
 th_dot_prod_f32(ee_f32_t *p_a, ee_f32_t *p_b, uint32_t len, ee_f32_t *p_result)
 {
+#if IS_RISCV_P_EXT_SUPPORTED
+    #warning "th_dot_prod_f32() not implemented"
+#elif IS_RISCV_V_EXT_SUPPORTED
+    vext_riscv_dot_prod_f32(p_a, p_b, len, p_result);
+#else
     s_riscv_dot_prod_f32(p_a, p_b, len, p_result);
+#endif
 }
 
 void
 th_multiply_f32(ee_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c, uint32_t len)
 {
+#if IS_RISCV_P_EXT_SUPPORTED
+    #warning "th_multiply_f32() not implemented"
+#elif IS_RISCV_V_EXT_SUPPORTED
+    vext_riscv_multiply_f32(p_a, p_b, p_c, len);
+#else
     s_riscv_multiply_f32(p_a, p_b, p_c, len);
+#endif
 }
 
 void
 th_cmplx_mag_f32(ee_f32_t *p_a, ee_f32_t *p_c, uint32_t len)
 {
+#if IS_RISCV_P_EXT_SUPPORTED
+    #warning "th_cmplx_mag_f32() not implemented"
+#elif IS_RISCV_V_EXT_SUPPORTED
+    vext_riscv_cmplx_mag_f32(p_a, p_c, len);
+#else
     s_riscv_cmplx_mag_f32(p_a, p_c, len);
+#endif
 }
 
 void
 th_offset_f32(ee_f32_t *p_a, ee_f32_t offset, ee_f32_t *p_c, uint32_t len)
 {
+  #if IS_RISCV_P_EXT_SUPPORTED
+    #warning "th_offset_f32() not implemented"
+#elif IS_RISCV_V_EXT_SUPPORTED
+    vext_riscv_offset_f32(p_a, offset, p_c, len);
+#else
     s_riscv_offset_f32(p_a, offset, p_c, len);
+#endif
 }
 
 void
 th_vlog_f32(ee_f32_t *p_a, ee_f32_t *p_c, uint32_t len)
 {
+  #if IS_RISCV_P_EXT_SUPPORTED
+    #warning "th_vlog_f32() not implemented"
+#elif IS_RISCV_V_EXT_SUPPORTED
+    vext_riscv_vlog_f32(p_a, p_c, len);
+#else
     s_riscv_vlog_f32(p_a, p_c, len);
+#endif
 }
 
 void
 th_mat_vec_mult_f32(ee_matrix_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c)
 {
+  #if IS_RISCV_P_EXT_SUPPORTED
+    #warning "th_mat_vec_mult_f32() not implemented"
+#elif IS_RISCV_V_EXT_SUPPORTED
+    vext_riscv_mat_vec_mult_f32(p_a, p_b, p_c);
+#else
     s_riscv_mat_vec_mult_f32(p_a, p_b, p_c);
+#endif
 }
 
 void
 th_nn_init(void)
 {
-    s_riscv_nn_init();
+#if IS_RISCV_P_EXT_SUPPORTED
+    #warning "th_nn_init() not implemented"
+#elif IS_RISCV_V_EXT_SUPPORTED
+    vext_riscv_nn_init();
+#endif
 }
 
 ee_status_t
 th_nn_classify(const int8_t in_data[490], int8_t out_data[12])
 {
+#if IS_RISCV_P_EXT_SUPPORTED
+    #warning "th_nn_classify() not implemented"
+#elif IS_RISCV_V_EXT_SUPPORTED
+    return vext_riscv_nn_classify(in_data, out_data);
+#else
     return s_riscv_nn_classify(in_data, out_data);
+#endif
 }
