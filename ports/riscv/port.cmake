@@ -1,6 +1,12 @@
 include_directories(${PORT_DIR})
 
-set(PORT_SOURCE
-    ${PORT_DIR}/th_api.c
-    # Include additional source files
+file(GLOB PORT_SOURCES
+    ${PORT_DIR}/*.c
+    ${PORT_DIR}/scalar/*.c
+    ${PORT_DIR}/vector/*.c
+    ${PORT_DIR}/packed_simd/*.c
 )
+
+add_definitions(-DUSE_SMALLFT)
+
+set(PORT_SOURCE ${PORT_SOURCES})
