@@ -4,7 +4,9 @@ project(audiomark
 	LANGUAGES C
 	VERSION 1.0.0)
 
-set(CMAKE_C_FLAGS "-O2")
+if(NOT CMAKE_C_FLAGS)
+  set(CMAKE_C_FLAGS "-O2" CACHE STRING "DEFAULT C FLAGS")
+endif()
 
 include_directories(lib/speexdsp)
 include_directories(lib/speexdsp/include)
