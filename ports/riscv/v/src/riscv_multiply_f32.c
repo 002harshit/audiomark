@@ -14,11 +14,24 @@
 
 #include "ee_api.h"
 #include "ee_audiomark.h"
-#include "v_riscv_audiomark.h"
+#include "riscv_audiomark.h"
 
-ee_status_t
-v_riscv_nn_classify(const int8_t in_data[490], int8_t out_data[12])
+void
+riscv_multiply_f32(ee_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c, uint32_t len)
 {
-#warning "v_riscv_nn_classify() not implemented"
-    return 0;
+    while (len > 0)
+    {
+        size_t vl = __riscv_vsetvl_e32m4(len);
+
+        vfloat32m4_t v_a = __riscv_vle32_v_f32m4(p_a, vl);
+        vfloat32m4_t v_b = __riscv_vle32_v_f32m4(p_b, vl);
+
+        vfloat32m4_t v_result = __riscv_vfmul_vv_f32m4(v_b, v_a, vl);
+        __riscv_vse32_v_f32m4(p_c, v_result, vl);
+
+        len -= vl;
+        p_a += vl;
+        p_b += vl;
+        p_c += vl;
+    }
 }

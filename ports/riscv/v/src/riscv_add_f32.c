@@ -14,23 +14,24 @@
 
 #include "ee_api.h"
 #include "ee_audiomark.h"
-#include "v_riscv_audiomark.h"
+#include "riscv_audiomark.h"
 
 void
-v_riscv_f32_to_int16(const ee_f32_t *p_src, int16_t *p_dst, uint32_t len)
+riscv_add_f32(ee_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c, uint32_t len)
 {
     while (len > 0)
     {
         size_t vl = __riscv_vsetvl_e32m4(len);
 
-        vfloat32m4_t v_src = __riscv_vle32_v_f32m4(p_src, vl);
-        v_src              = __riscv_vfmul_vf_f32m4(v_src, 32768.0f, vl);
+        vfloat32m4_t v_a = __riscv_vle32_v_f32m4(p_a, vl);
+        vfloat32m4_t v_b = __riscv_vle32_v_f32m4(p_b, vl);
 
-        vint16m2_t v_result = __riscv_vfncvt_rtz_x_f_w_i16m2(v_src, vl);
-        __riscv_vse16_v_i16m2(p_dst, v_result, vl);
+        vfloat32m4_t v_result = __riscv_vfadd_vv_f32m4(v_b, v_a, vl);
+        __riscv_vse32_v_f32m4(p_c, v_result, vl);
 
         len -= vl;
-        p_src += vl;
-        p_dst += vl;
+        p_a += vl;
+        p_b += vl;
+        p_c += vl;
     }
 }

@@ -10,27 +10,9 @@
  * effective EEMBC Benchmark License Agreement, you must discontinue use.
  */
 
-#ifndef __TH_TYPES_H
-#define __TH_TYPES_H
+#ifndef __RISCV_V_TH_TYPES_H
+#define __RISCV_V_TH_TYPES_H
 
-#include <stddef.h>
-#include <string.h>
+#include "../th_types.h"
 
-#define TH_FLOAT32_TYPE float
-
-typedef struct
-{
-    int fft_len;
-} riscv_cfft_instance_f32;
-
-typedef struct
-{
-    int              fft_len;
-    TH_FLOAT32_TYPE *work_real;
-    TH_FLOAT32_TYPE *work_imag;
-} riscv_rfft_instance_f32;
-
-#define TH_RFFT_INSTANCE_FLOAT32_TYPE riscv_rfft_instance_f32
-#define TH_CFFT_INSTANCE_FLOAT32_TYPE riscv_cfft_instance_f32
-
-#endif /* __TH_TYPES_H */
+#endif // __RISCV_V_TH_TYPES_H

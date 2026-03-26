@@ -14,10 +14,10 @@
 
 #include "ee_api.h"
 #include "ee_audiomark.h"
-#include "v_riscv_audiomark.h"
+#include "riscv_audiomark.h"
 
 void
-v_riscv_int16_to_f32(const int16_t *p_src, ee_f32_t *p_dst, uint32_t len)
+riscv_int16_to_f32(const int16_t *p_src, ee_f32_t *p_dst, uint32_t len)
 {
     const float scale = 1.0f / 32768.0f;
     while (len > 0)

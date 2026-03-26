@@ -14,10 +14,22 @@
 
 #include "ee_api.h"
 #include "ee_audiomark.h"
-#include "v_riscv_audiomark.h"
+#include "riscv_audiomark.h"
 
 void
-v_riscv_mat_vec_mult_f32(ee_matrix_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c)
+riscv_offset_f32(ee_f32_t *p_a, ee_f32_t offset, ee_f32_t *p_c, uint32_t len)
 {
-#warning "v_riscv_mat_vec_mult_f32() not implemented"
+    while (len > 0)
+    {
+        size_t vl = __riscv_vsetvl_e32m4(len);
+
+        vfloat32m4_t v_a = __riscv_vle32_v_f32m4(p_a, vl);
+
+        vfloat32m4_t v_result = __riscv_vfadd_vf_f32m4(v_a, offset, vl);
+        __riscv_vse32_v_f32m4(p_c, v_result, vl);
+
+        len -= vl;
+        p_a += vl;
+        p_c += vl;
+    }
 }
