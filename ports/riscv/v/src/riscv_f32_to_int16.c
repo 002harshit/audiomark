@@ -16,10 +16,10 @@
 
 #include "ee_api.h"
 #include "ee_audiomark.h"
-#include "riscv_audiomark.h"
+#include "rvv_support_guard.h"
 
 void
-riscv_f32_to_int16(const ee_f32_t *p_src, int16_t *p_dst, uint32_t len)
+th_f32_to_int16(const ee_f32_t *p_src, int16_t *p_dst, uint32_t len)
 {
     while (len > 0)
     {

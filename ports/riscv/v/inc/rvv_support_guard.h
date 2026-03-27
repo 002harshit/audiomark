@@ -14,26 +14,14 @@
  * limitations under the License.
  */
 
-#include "ee_api.h"
-#include "ee_audiomark.h"
-#include "rvv_support_guard.h"
+#ifndef RVV_SUPPORT_GUARD_H
+#define RVV_SUPPORT_GUARD_H
 
-void
-th_subtract_f32(ee_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c, uint32_t len)
-{
-    while (len > 0)
-    {
-        size_t vl = __riscv_vsetvl_e32m4(len);
+#if defined(__riscv) && defined(__riscv_vector) \
+    && (__riscv_v_intrinsic >= 1000000)
+#include <riscv_vector.h>
+#else
+#error "RISCV VECTOR EXTENSION v1.0 NOT SUPPORTED"
+#endif
 
-        vfloat32m4_t v_a = __riscv_vle32_v_f32m4(p_a, vl);
-        vfloat32m4_t v_b = __riscv_vle32_v_f32m4(p_b, vl);
-
-        vfloat32m4_t v_result = __riscv_vfsub_vv_f32m4(v_b, v_a, vl);
-        __riscv_vse32_v_f32m4(p_c, v_result, vl);
-
-        len -= vl;
-        p_a += vl;
-        p_b += vl;
-        p_c += vl;
-    }
-}
+#endif // RVV_SUPPORT_GUARD_H

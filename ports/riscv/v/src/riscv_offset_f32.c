@@ -16,10 +16,10 @@
 
 #include "ee_api.h"
 #include "ee_audiomark.h"
-#include "riscv_audiomark.h"
+#include "rvv_support_guard.h"
 
 void
-riscv_offset_f32(ee_f32_t *p_a, ee_f32_t offset, ee_f32_t *p_c, uint32_t len)
+th_offset_f32(ee_f32_t *p_a, ee_f32_t offset, ee_f32_t *p_c, uint32_t len)
 {
     while (len > 0)
     {
