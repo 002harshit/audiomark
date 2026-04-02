@@ -11,6 +11,13 @@ set(PORT_SOURCE
 
     ${PORT_DIR}/th_api.c
 
+    ${PORT_DIR}/src/libdsp/dsp_tables.c
+    ${PORT_DIR}/src/libdsp/dsp_cfft_f32.c
+    ${PORT_DIR}/src/libdsp/dsp_cfft_rd2_f32.c
+    ${PORT_DIR}/src/libdsp/dsp_cfft_rd4_f32.c
+    ${PORT_DIR}/src/libdsp/dsp_cfft_rd8_f32.c
+    ${PORT_DIR}/src/libdsp/dsp_rfft_f32.c
+
     ${PORT_DIR}/src/nn/avgpool_s8.c
     ${PORT_DIR}/src/nn/convolve_s8.c
     ${PORT_DIR}/src/nn/depthwise_conv_s8.c
