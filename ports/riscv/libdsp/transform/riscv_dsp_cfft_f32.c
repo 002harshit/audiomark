@@ -1,0 +1,138 @@
+/******************************************************************************
+ * Copyright (C) 2010-2025 Arm Limited or its affiliates. All rights reserved.*
+ * Copyright (C) 2018-2025 Andes Technology Corporation. All rights reserved. *
+ *                                                                            *
+ * SPDX-License-Identifier: Apache-2.0                                        *
+ *                                                                            *
+ * Licensed under the Apache License, Version 2.0 (the License); you may      *
+ * not use this file except in compliance with the License.                   *
+ * You may obtain a copy of the License at                                    *
+ *                                                                            *
+ * www.apache.org/licenses/LICENSE-2.0                                        *
+ *                                                                            *
+ * Unless required by applicable law or agreed to in writing, software        *
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT    *
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.           *
+ * See the License for the specific language governing permissions and        *
+ * limitations under the License.                                             *
+ ******************************************************************************/
+
+#include <internal_config.h>
+#include "internal_transform_math.h"
+
+
+/**
+ * @ingroup transform
+ */
+
+/**
+ * @addtogroup cfft
+ * @{
+ */
+
+/**
+ * @brief Function to implement the floating-point Complex FFT Functions
+ * @param[in]       *src     points to the input block data src[2 * k] and
+ *                           src[2 * k + 1] contain the real and imaginary
+ *                           parts of the k-th data.
+ * @param[in]       m        If not defined STATIC_VERSION, the data buffer
+ *                           is of size 2 * n while n = 2 ** m.
+ * @return none
+ */
+
+#ifndef ENA_FFT_REARCH
+#ifdef ENA_FFT_RADIX8_F32
+extern int32_t riscv_dsp_cfft_rd2_f32(float32_t *src, uint32_t m);
+extern int32_t riscv_dsp_cifft_rd2_f32(float32_t *src, uint32_t m);
+extern int32_t riscv_dsp_cfft_rd8_f32(float32_t *src, uint32_t m);
+extern int32_t riscv_dsp_cifft_rd8_f32(float32_t *src, uint32_t m);
+extern int32_t riscv_dsp_cfft_rd4_f32(float32_t *src, uint32_t m);
+extern int32_t riscv_dsp_cifft_rd4_f32(float32_t *src, uint32_t m);
+extern int32_t riscv_dsp_cfft_8pt_f32(float32_t *src, uint32_t m);
+extern int32_t riscv_dsp_cfft_4pt_f32(float32_t *src, uint32_t m);
+extern int32_t riscv_dsp_cifft_8pt_f32(float32_t *src, uint32_t m);
+extern int32_t riscv_dsp_cifft_4pt_f32(float32_t *src, uint32_t m);
+#else // ENA_FFT_RADIX8_F32
+extern int32_t riscv_dsp_cfft_rd2_f32(float32_t *src, uint32_t m);
+extern int32_t riscv_dsp_cfft_rd4_f32(float32_t *src, uint32_t m);
+extern int32_t riscv_dsp_cifft_rd2_f32(float32_t *src, uint32_t m);
+extern int32_t riscv_dsp_cifft_rd4_f32(float32_t *src, uint32_t m);
+extern int32_t riscv_dsp_cfft_8pt_f32(float32_t *src, uint32_t m);
+extern int32_t riscv_dsp_cfft_4pt_f32(float32_t *src, uint32_t m);
+extern int32_t riscv_dsp_cifft_8pt_f32(float32_t *src, uint32_t m);
+extern int32_t riscv_dsp_cifft_4pt_f32(float32_t *src, uint32_t m);
+#endif // ENA_FFT_RADIX8_F32
+
+void riscv_dsp_cfft_f32(float32_t *src, const uint32_t m)
+{
+    switch (m)
+    {
+    case 4:
+    case 6:
+    case 8:
+    case 10:
+    case 12:
+    case 14:
+        riscv_dsp_cfft_rd4_f32(src, m);
+        break;
+#ifdef ENA_FFT_RADIX8_F32
+    case 2:
+        riscv_dsp_cfft_4pt_f32(src, m);
+        break;
+    case 3:
+        riscv_dsp_cfft_8pt_f32(src, m);
+        break;
+    default :
+        riscv_dsp_cfft_rd8_f32(src, m);
+#else
+    case 2: 
+        riscv_dsp_cfft_4pt_f32(src, m);
+        break;
+    case 3: 
+        riscv_dsp_cfft_8pt_f32(src, m);
+        break;
+    default :
+        riscv_dsp_cfft_rd2_f32(src, m);
+#endif
+        break;
+    }
+}
+
+void riscv_dsp_cifft_f32(float32_t *src, const uint32_t m)
+{
+    switch (m)
+    {
+    case 4:
+    case 6:
+    case 8:
+    case 10:
+    case 12:
+    case 14:
+        riscv_dsp_cifft_rd4_f32(src, m);
+        break;
+#ifdef ENA_FFT_RADIX8_F32
+    case 2:
+        riscv_dsp_cifft_4pt_f32(src, m); 
+        break;
+    case 3:
+        riscv_dsp_cifft_8pt_f32(src, m);
+        break;
+    default :
+        riscv_dsp_cifft_rd8_f32(src, m);
+#else
+    case 2:
+        riscv_dsp_cifft_4pt_f32(src, m);
+        break;
+    case 3:
+        riscv_dsp_cifft_8pt_f32(src, m);
+        break;
+    default :
+        riscv_dsp_cifft_rd2_f32(src, m);
+#endif
+        break;
+    }
+}
+#endif // ENA_FFT_REARCH
+/**
+ * @} end of cfft
+ */
