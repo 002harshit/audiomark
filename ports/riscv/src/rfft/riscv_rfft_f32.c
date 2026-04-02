@@ -101,6 +101,7 @@ th_rfft_f32(ee_rfft_f32_t *p_instance,
             ee_f32_t      *p_out,
             uint8_t        ifftFlag)
 {
+  BM_BEGIN();
     if (!p_instance || !p_in || !p_out || !p_instance->work_real
         || !p_instance->work_imag)
     {
@@ -164,4 +165,6 @@ th_rfft_f32(ee_rfft_f32_t *p_instance,
             p_out[i] = real[i];
         }
     }
+    BM_END();
+    BM_PRINT();
 }

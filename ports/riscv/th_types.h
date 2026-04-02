@@ -24,13 +24,22 @@ typedef struct
 
 } riscv_cfft_instance_f32;
 
-typedef struct
-{
-    int              fft_len;
-    TH_FLOAT32_TYPE *work_real;
-    TH_FLOAT32_TYPE *work_imag;
 
-} riscv_rfft_instance_f32;
+// TODO: REMOVE THESE BEFORE PR
+////////
+#include <stdint.h>
+#include <stdio.h>
+#include "riscv_rfft_def.h"
+static inline uint64_t rdcycle(void)
+{
+  uint64_t c;
+  asm volatile ("rdcycle %0" : "=r"(c));
+  return c;
+}
+#define BM_BEGIN() uint32_t c0 = rdcycle()
+#define BM_END() uint32_t c1 = rdcycle()
+#define BM_PRINT() printf("[%s]: %u\n", __func__, (uint32_t) (c1 - c0))
+//////////
 
 /*
    struct for matrix type is not defined yet because audiomark
