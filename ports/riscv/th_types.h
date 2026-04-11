@@ -20,8 +20,6 @@
 
 typedef struct
 {
-    int fft_len;
-
 } riscv_cfft_instance_f32;
 
 typedef struct
