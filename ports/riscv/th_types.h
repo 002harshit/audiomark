@@ -26,10 +26,6 @@ typedef struct
 
 typedef struct
 {
-    int              fft_len;
-    TH_FLOAT32_TYPE *work_real;
-    TH_FLOAT32_TYPE *work_imag;
-
 } riscv_rfft_instance_f32;
 
 /*

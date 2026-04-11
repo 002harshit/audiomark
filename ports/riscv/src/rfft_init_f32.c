@@ -1,5 +1,5 @@
 /**
- * Copyright 2026 Sohail Raj Satapathy
+ * Copyright 2026 Harshit Kumar Shivhare
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,17 +20,9 @@
 ee_status_t
 th_rfft_init_f32(ee_rfft_f32_t *p_instance, int fft_length)
 {
-    p_instance->fft_len = fft_length;
-
-    p_instance->work_real
-        = th_malloc(sizeof(ee_f32_t) * fft_length, COMPONENT_KWS);
-    p_instance->work_imag
-        = th_malloc(sizeof(ee_f32_t) * fft_length, COMPONENT_KWS);
-
-    if (!p_instance->work_real || !p_instance->work_imag)
+    if (fft_length != 1024)
     {
         return EE_STATUS_ERROR;
     }
-
     return EE_STATUS_OK;
 }
