@@ -1,5 +1,6 @@
 include_directories(
     ${PORT_DIR}
+    ${PORT_DIR}/src/
 )
 
 # TODO: Add our FFT functions as an FFT backend in fftwrap.c
@@ -10,6 +11,10 @@ add_definitions(-DUSE_SMALLFT)
 set(PORT_SOURCE 
 
     ${PORT_DIR}/th_api.c
+
+    ${PORT_DIR}/src/dsp/tables.c
+    ${PORT_DIR}/src/dsp/cfft_f32.c
+    ${PORT_DIR}/src/dsp/rfft_fast_f32.c
 
     ${PORT_DIR}/src/nn/avgpool_s8.c
     ${PORT_DIR}/src/nn/convolve_s8.c
