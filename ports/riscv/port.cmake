@@ -3,10 +3,7 @@ include_directories(
     ${PORT_DIR}/src/
 )
 
-# TODO: Add our FFT functions as an FFT backend in fftwrap.c
-# for now, we enable but do not use smallfft since fftwrap.c
-# throws an error without it.
-add_definitions(-DUSE_SMALLFT)
+add_definitions(-DUSE_RISCV_DSP)
 
 set(PORT_SOURCE 
 
