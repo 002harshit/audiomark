@@ -17,84 +17,32 @@
 #include "ee_audiomark.h"
 #include "ee_api.h"
 #include "nn/functions.h"
+#include "nn/support_functions.h"
+#include "nn/buffer_utils.h"
 
-/* Get size of additional buffers required by library/framework */
-static int
-ds_cnn_s_s8_get_buffer_size(void)
-{
-    /* Custom function based on knowledge that only select layers of DS_CNN_S
-     * network require additional buffers. */
-    int            max_buffer = 0;
-    nn_conv_params conv_params;
-    nn_dims        input_dims;
-    nn_dims        filter_dims;
-    nn_dims        output_dims;
+#define BUF_CONV0 \
+    NN_CONV_S8_BUF_SIZE(CONV_0_IN_CH, CONV_0_FILTER_W, CONV_0_FILTER_H)
+#define BUF_CONV2 \
+    NN_CONV_S8_BUF_SIZE(CONV_2_IN_CH, CONV_2_FILTER_W, CONV_2_FILTER_H)
+#define BUF_CONV4 \
+    NN_CONV_S8_BUF_SIZE(CONV_4_IN_CH, CONV_4_FILTER_W, CONV_4_FILTER_H)
+#define BUF_CONV6 \
+    NN_CONV_S8_BUF_SIZE(CONV_6_IN_CH, CONV_6_FILTER_W, CONV_6_FILTER_H)
+#define BUF_CONV8 \
+    NN_CONV_S8_BUF_SIZE(CONV_8_IN_CH, CONV_8_FILTER_W, CONV_8_FILTER_H)
 
-    /* Layer 0 - Conv */
-    conv_params.padding.h  = CONV_0_PAD_H;
-    conv_params.padding.w  = CONV_0_PAD_W;
-    conv_params.stride.h   = CONV_0_STRIDE_H;
-    conv_params.stride.w   = CONV_0_STRIDE_W;
-    conv_params.dilation.h = CONV_0_DILATION_H;
-    conv_params.dilation.w = CONV_0_DILATION_W;
-
-    input_dims.n = CONV_0_INPUT_BATCHES;
-    input_dims.h = CONV_0_INPUT_H;
-    input_dims.w = CONV_0_INPUT_W;
-    input_dims.c = CONV_0_IN_CH;
-
-    filter_dims.h = CONV_0_FILTER_H;
-    filter_dims.w = CONV_0_FILTER_W;
-
-    output_dims.n = input_dims.n;
-    output_dims.h = CONV_0_OUTPUT_H;
-    output_dims.w = CONV_0_OUTPUT_W;
-    output_dims.c = CONV_0_OUT_CH;
-
-    int32_t size = nn_convolve_s8_get_buffer_size(&input_dims, &filter_dims);
-
-    max_buffer = size > max_buffer ? size : max_buffer;
-
-    /* Layer 0 - DW Conv */
-    nn_dw_conv_params dw_conv_params;
-    dw_conv_params.activation.min = DW_CONV_1_OUT_ACTIVATION_MIN;
-    dw_conv_params.activation.max = DW_CONV_1_OUT_ACTIVATION_MAX;
-    dw_conv_params.ch_mult        = 1;
-    dw_conv_params.dilation.h     = DW_CONV_1_DILATION_H;
-    dw_conv_params.dilation.w     = DW_CONV_1_DILATION_W;
-    dw_conv_params.input_offset   = DW_CONV_1_INPUT_OFFSET;
-    dw_conv_params.output_offset  = DW_CONV_1_OUTPUT_OFFSET;
-    dw_conv_params.padding.h      = DW_CONV_1_PAD_H;
-    dw_conv_params.padding.w      = DW_CONV_1_PAD_W;
-    dw_conv_params.stride.h       = DW_CONV_1_STRIDE_H;
-    dw_conv_params.stride.w       = DW_CONV_1_STRIDE_W;
-
-    filter_dims.h = DW_CONV_1_FILTER_H;
-    filter_dims.w = DW_CONV_1_FILTER_W;
-
-    input_dims.n = 1;
-    input_dims.h = DW_CONV_1_INPUT_H;
-    input_dims.w = DW_CONV_1_INPUT_W;
-    input_dims.c = DW_CONV_1_OUT_CH;
-
-    output_dims.h = DW_CONV_1_OUTPUT_H;
-    output_dims.w = DW_CONV_1_OUTPUT_W;
-    output_dims.c = DW_CONV_1_OUT_CH;
-
-    return max_buffer;
-}
+#define MAX_BUF_SIZE \
+    (MAX5(BUF_CONV0, BUF_CONV2, BUF_CONV4, BUF_CONV6, BUF_CONV8))
 
 /* Test for a complete int8 DS_CNN_S keyword spotting network from
  * https://github.com/ARM-software/ML-zoo & Tag: 22.02 */
 nn_context ctx;
 
+static uint8_t scratch_buffer[MAX_BUF_SIZE] __attribute__((aligned(8)));
+
 void
 th_nn_init(void)
 {
-    ctx.size = ds_cnn_s_s8_get_buffer_size();
-
-    /* N.B. The developer owns this file so they can allocate how they like. */
-    ctx.buf = th_malloc(ctx.size, COMPONENT_KWS);
-
-    /* we don't free in audiomark */
+    ctx.size = MAX_BUF_SIZE;
+    ctx.buf  = scratch_buffer;
 }
