@@ -16,54 +16,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install toolchain build dependencies
+      - name: Install system dependencies (including Clang)
         run: |
           sudo apt-get update
-          sudo apt-get install -y autoconf automake autotools-dev curl python3 python3-pip libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev ninja-build cmake libglib2.0-dev
+          sudo apt-get install -y cmake clang llvm
 
-      - name: Cache RISC-V Toolchain
-        id: cache-toolchain
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/opt/riscv
-          # This cache key will reuse the toolchain unless you change the workflow file
-          key: riscv-gnu-toolchain-llvm-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
-
-      - name: Compile GNU+Clang Toolchain (riscv-gnu-toolchain)
-        if: steps.cache-toolchain.outputs.cache-hit != 'true'
-        run: |
-          git clone https://github.com/riscv-collab/riscv-gnu-toolchain.git
-          cd riscv-gnu-toolchain
-          
-          # Force the entire toolchain, including libc/libstdc++, to target xtheadvector
-          ./configure --prefix=${{ github.workspace }}/opt/riscv \
-            --with-arch=rv64gc_xtheadvector \
-            --with-abi=lp64d \
-            --enable-llvm
-            
-          make linux -j $(nproc)
-
-      - name: Add Toolchain to PATH
-        run: echo "${{ github.workspace }}/opt/riscv/bin" >> $GITHUB_PATH
-
-      - name: Post-Build Diagnostics (Compiler & CPU Info)
+      - name: Post-Install Diagnostics (Compiler & CPU Info)
         run: |
           echo "=== CPU Info ==="
           cat /proc/cpuinfo
           
           echo "=== Clang Version ==="
-          riscv64-unknown-linux-gnu-clang --version
+          clang --version
           
           echo "=== Vector Macros Dump (-march=rv64gcbv) ==="
-          riscv64-unknown-linux-gnu-clang -march=rv64gcbv -mabi=lp64d -dM -E - < /dev/null | grep -E "riscv_v|vector" || echo "No matches for rv64gcbv"
+          clang -march=rv64gcbv -mabi=lp64d -dM -E - < /dev/null | grep -E "riscv_v|vector" || echo "No matches for rv64gcbv"
           
           echo "=== Vector Macros Dump (-march=rv64gc_xtheadvector) ==="
-          riscv64-unknown-linux-gnu-clang -march=rv64gc_xtheadvector -mabi=lp64d -dM -E - < /dev/null | grep -E "riscv_v|vector" || echo "No matches for xtheadvector"
+          clang -march=rv64gc_xtheadvector -mabi=lp64d -dM -E - < /dev/null | grep -E "riscv_v|vector" || echo "No matches for xtheadvector"
 
-      - name: Configure CMake for RVV 0.7.1
+      - name: Configure CMake for RVV 0.7.1 (using System Clang)
         env:
-          CC: riscv64-unknown-linux-gnu-clang
-          CXX: riscv64-unknown-linux-gnu-clang++
+          CC: clang
+          CXX: clang++
         run: >
           cmake -S . -B build 
           -DPORT_DIR=ports/riscv 
@@ -99,7 +74,6 @@ jobs:
         run: chmod +x build/test_*
 
       - name: Run unit tests
-        # Added set -x to print exactly which test causes the core dump if it fails again
         run: |
           set -x
           ./build/test_abf_f32
