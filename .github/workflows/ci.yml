@@ -9,66 +9,105 @@ on:
       - riscv/**
   workflow_dispatch:
 
+env:
+  XUANTIE_URL: https://github.com/sohail103/xuantie-riscv/releases/download/xuantie-10.4.0/xuantie-toolchain.tar.gz
+  XUANTIE_SHA256: 6d38b2015a8be97f544e23d3ee2da15053a569ffbb804cc93e1e5190291b842d
+  THEAD_MARCH: rv64gcxtheadvector
+  RVV_ROLLBACK_REPO: RISCVtestbed/rvv-rollback
+
 jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
   build:
     runs-on: ubuntu-24.04-riscv
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install toolchain build dependencies
+      # ── System info ─────────────────────────────────────────────────────────
+      - name: Print CPU and compiler info
         run: |
-          sudo apt-get update
-          sudo apt-get install -y autoconf automake autotools-dev curl python3 python3-pip libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev ninja-build cmake libglib2.0-dev
+          echo "=== CPU INFO ==="
+          cat /proc/cpuinfo
+          echo ""
+          echo "=== GCC VERSION ==="
+          gcc --version
+          echo ""
+          echo "=== GCC VERBOSE ==="
+          gcc -v 2>&1
+          echo ""
+          echo "=== GCC MARCH SUPPORT (rv64gcv) ==="
+          gcc -march=rv64gcv -x c -E - < /dev/null 2>&1 || echo "(rv64gcv not supported by system gcc)"
 
-      - name: Cache XuanTie RISC-V Toolchain
-        id: cache-toolchain
+      # ── rvv-rollback (v1.0 → v0.7 assembly translator) ─────────────────────
+      - name: Checkout rvv-rollback
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.RVV_ROLLBACK_REPO }}
+          path: rvv-rollback
+
+      # ── XuanTie toolchain (assembler + linker for T-Head / RVV 0.7) ────────
+      #    710 MB — cached by sha256
+      - name: Cache XuanTie toolchain
+        id: cache-xuantie
         uses: actions/cache@v4
         with:
-          path: ${{ github.workspace }}/opt/riscv
-          key: xuantie-gnu-toolchain-llvm-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
+          path: ~/xuantie
+          key: xuantie-${{ env.XUANTIE_SHA256 }}
 
-      - name: Compile XuanTie GNU+Clang Toolchain
-        if: steps.cache-toolchain.outputs.cache-hit != 'true'
+      - name: Download and verify XuanTie toolchain
+        if: steps.cache-xuantie.outputs.cache-hit != 'true'
         run: |
-          git clone https://github.com/XUANTIE-RV/xuantie-gnu-toolchain.git
-          cd xuantie-gnu-toolchain
-          
-          # Force the XuanTie toolchain and libraries to target xtheadvector natively
-          ./configure --prefix=${{ github.workspace }}/opt/riscv \
-            --with-arch=rv64gc_xtheadvector \
-            --with-abi=lp64d \
-            --enable-llvm
-            
-          make linux -j $(nproc)
+          wget -q "${{ env.XUANTIE_URL }}" -O xuantie-toolchain.tar.gz
+          echo "${{ env.XUANTIE_SHA256 }}  xuantie-toolchain.tar.gz" | sha256sum -c
+          mkdir -p ~/xuantie
+          tar -xzf xuantie-toolchain.tar.gz -C ~/xuantie
 
-      - name: Add Toolchain to PATH
-        run: echo "${{ github.workspace }}/opt/riscv/bin" >> $GITHUB_PATH
-
-      - name: Post-Build Diagnostics (Compiler & CPU Info)
+      - name: Locate XuanTie GCC and add to PATH
         run: |
-          echo "=== CPU Info ==="
-          cat /proc/cpuinfo
-          
-          echo "=== Clang Version ==="
-          riscv64-unknown-linux-gnu-clang --version
-          
-          echo "=== Vector Macros Dump (-march=rv64gcbv) ==="
-          riscv64-unknown-linux-gnu-clang -march=rv64gcbv -mabi=lp64d -dM -E - < /dev/null | grep -E "riscv_v|vector" || echo "No matches for rv64gcbv"
-          
-          echo "=== Vector Macros Dump (-march=rv64gc_xtheadvector) ==="
-          riscv64-unknown-linux-gnu-clang -march=rv64gc_xtheadvector -mabi=lp64d -dM -E - < /dev/null | grep -E "riscv_v|vector" || echo "No matches for xtheadvector"
+          THEAD_GCC=$(find ~/xuantie -name "riscv64-unknown-linux-gnu-gcc" -type f | head -1)
+          if [ -z "$THEAD_GCC" ]; then
+            echo "ERROR: riscv64-unknown-linux-gnu-gcc not found in extracted toolchain."
+            find ~/xuantie -maxdepth 4 | head -30
+            exit 1
+          fi
+          echo "XuanTie GCC: $THEAD_GCC"
+          echo "THEAD_GCC=$THEAD_GCC" >> $GITHUB_ENV
+          echo "$(dirname $THEAD_GCC)" >> $GITHUB_PATH
 
-      - name: Configure CMake for RVV 0.7.1
-        env:
-          CC: riscv64-unknown-linux-gnu-clang
-          CXX: riscv64-unknown-linux-gnu-clang++
-        run: >
-          cmake -S . -B build 
-          -DPORT_DIR=ports/riscv 
-          -DCMAKE_C_FLAGS="-O3 -march=rv64gc_xtheadvector -mabi=lp64d" 
-          -DCMAKE_CXX_FLAGS="-O3 -march=rv64gc_xtheadvector -mabi=lp64d"
 
+      - name: Install toolchain dependencies & fix multiarch paths
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libc6-dev
+    
+          # Symlink multiarch bits globally so GCC always captures it regardless of -march selection
+          if [ ! -d /usr/include/bits ] && [ -d /usr/include/riscv64-linux-gnu/bits ]; then
+            sudo ln -s /usr/include/riscv64-linux-gnu/bits /usr/include/bits
+          fi
+
+      # ── Configure CMake ─────────────────────────────────────────────────────
+      #    Phase 1 (system gcc): .c → .o.v1p0.s   (-march=rv64gcv, RVV v1.0)
+      #    Phase 2 (rollback):   .o.v1p0.s → .o.v0p7.s
+      #    Phase 3 (XuanTie):    .o.v0p7.s → .o   (-march=rv64gcxtheadvector)
+      #    Link    (XuanTie):    .o … → binary     (-static)
+      #
+      #    CMAKE_C_COMPILER_WORKS=TRUE skips CMake's compiler detection test,
+      #    which would fail because the T-Head system assembler rejects the
+      #    zve* sub-extensions that -march=rv64gcv expands to.
+
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build \
+            -DPORT_DIR=ports/riscv/v \
+            -DCMAKE_C_COMPILER=$(which gcc) \
+            -DCMAKE_C_COMPILER_WORKS=TRUE \
+            -DCMAKE_C_FLAGS_INIT="-march=rv64gcv -static -O2" \
+            -DCMAKE_EXE_LINKER_FLAGS_INIT="-static -O2" \
+            -DTHEAD_COMPILER="${{ env.THEAD_GCC }}" \
+            -DRVV_ROLLBACK_PY="${{ github.workspace }}/rvv-rollback/rvv-rollback.py" \
+            -DTHEAD_MARCH="${{ env.THEAD_MARCH }}"
+
+      # ── Build ────────────────────────────────────────────────────────────────
       - name: Build
         run: cmake --build build --parallel
 
@@ -79,6 +118,7 @@ jobs:
           path: build/
           retention-days: 1
 
+  # ─────────────────────────────────────────────────────────────────────────────
   unit-tests:
     needs: build
     runs-on: ubuntu-24.04-riscv
@@ -89,23 +129,18 @@ jobs:
           name: build-output
           path: build/
 
-      - name: Pre-Test Diagnostics (CPU Info)
-        run: |
-          echo "=== CPU Info on Test Node ==="
-          cat /proc/cpuinfo
-
       - name: Make test binaries executable
         run: chmod +x build/test_*
 
       - name: Run unit tests
         run: |
-          set -x
           ./build/test_abf_f32
           ./build/test_aec_f32
           ./build/test_anr_f32
           ./build/test_kws
           ./build/test_mfcc_f32
 
+  # ─────────────────────────────────────────────────────────────────────────────
   benchmark:
     needs: build
     runs-on: ubuntu-24.04-riscv
@@ -119,10 +154,8 @@ jobs:
       - name: Make benchmark executable
         run: chmod +x build/audiomark
 
-      - name: Pre-Benchmark Diagnostics (CPU Info)
-        run: |
-          echo "=== CPU Info on Benchmark Node ==="
-          cat /proc/cpuinfo
+      - name: Print CPU info
+        run: cat /proc/cpuinfo
 
       - name: Run AudioMark benchmark
         timeout-minutes: 15
@@ -130,7 +163,12 @@ jobs:
 
       - name: Report AudioMark score
         if: always()
-        run: if [ -f audiomark_output.txt ]; then cat audiomark_output.txt; else echo "Benchmark did not run."; fi
+        run: |
+          if [ -f audiomark_output.txt ]; then
+            cat audiomark_output.txt
+          else
+            echo "Benchmark did not produce output."
+          fi
 
       - name: Upload benchmark results
         if: always()
