@@ -6,6 +6,9 @@ include_directories(
 
 add_definitions(-DUSE_RISCV_DSP)
 
+# for mdf_opt_rvv.c
+add_compile_options(-include v/src/mdf_opt_config.h)
+
 set(PORT_SOURCE 
 
     ${PORT_DIR}/../th_api.c
