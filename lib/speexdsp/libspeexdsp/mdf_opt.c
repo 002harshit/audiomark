@@ -45,6 +45,12 @@
  */
 #include "mdf_opt_helium.c"
 
+#elif defined (__riscv) && defined(__riscv_vector)
+/*
+ * RISCV with v1.0 Vector Intrinsics
+ */
+#include "mdf_opt_rvv.c"
+
 #elif defined (OTHER_ARCH)
 /*
  * More architectures to be added
