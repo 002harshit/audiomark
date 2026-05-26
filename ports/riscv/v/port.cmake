@@ -36,6 +36,10 @@ if(RISCV_HAS_VECTOR_FP)
         -includeanr_opt_config.h
         -includefb_opt_config.h
     )
+    
+    # for mdf_opt_rvv.c
+    add_compile_options(-include v/src/mdf_opt_config.h)
+
     set(F32_SOURCES
         ${PORT_DIR}/src/dsp/cfft_f32.c
         ${PORT_DIR}/src/dsp/rfft_fast_f32.c
