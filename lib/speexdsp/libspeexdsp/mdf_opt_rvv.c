@@ -307,7 +307,7 @@ mdf_non_adapt_learning_rate_calc(spx_word32_t *power,
         vfloat32m8_t v_pwr = __riscv_vle32_v_f32m8(_power, vl);
         v_pwr              = __riscv_vfadd_vf_f32m8(v_pwr, 10.0f, vl);
 
-        // INFO: it might be possible to somehow remove vfrdiv using vfrec7
+        /* INFO: it might be possible to somehow remove vfrdiv using vfrec7 */
         vfloat32m8_t v_res = __riscv_vfrdiv_vf_f32m8(v_pwr, _adapt_rate, vl);
 
         __riscv_vse32_v_f32m8(_power_1, v_res, vl);
@@ -609,8 +609,8 @@ mdf_preemph(spx_word16_t *in,
 
         vfloat32m4_t v_in = __riscv_vle32_v_f32m4(_in, vl);
 
-        // INFO: it shifs the elements to the right and drops the
-        // last element in the last position
+        /* INFO: it shifs the elements to the right and drops the
+          last element in the last position */
         vfloat32m4_t v_prev = __riscv_vfslide1up_vf_f32m4(v_in, _mem, vl);
 
         _mem = _in[vl - 1];
