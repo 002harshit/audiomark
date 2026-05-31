@@ -394,20 +394,6 @@ power_spectrum_accum(const spx_word16_t *X, spx_word32_t *ps, int N)
 }
 #endif
 
-
-#define VLSEG2_F32M4(vr_, vi_, ptr_, vl_)                               \
-    do {                                                                  \
-        vfloat32m4x2_t _seg_ = __riscv_vlseg2e32_v_f32m4x2((ptr_), (vl_)); \
-        (vr_) = __riscv_vget_v_f32m4x2_f32m4(_seg_, 0);                 \
-        (vi_) = __riscv_vget_v_f32m4x2_f32m4(_seg_, 1);                 \
-    } while (0)
- 
-#define VSSEG2_F32M4(ptr_, vr_, vi_, vl_)                               \
-    do {                                                                  \
-        vfloat32m4x2_t _seg_ = __riscv_vcreate_v_f32m4x2((vr_), (vi_)); \
-        __riscv_vsseg2e32_v_f32m4x2((ptr_), _seg_, (vl_));              \
-    } while (0)
-
 #ifdef OVERRIDE_MDF_SPECTRAL_MUL_ACCUM
 static void
 spectral_mul_accum(const spx_word16_t *X,
@@ -419,54 +405,58 @@ spectral_mul_accum(const spx_word16_t *X,
     const float *_X   = (const float *)X;
     const float *_Y   = (const float *)Y;
     float       *_acc = (float *)acc;
- 
+
     memset(_acc, 0, N * sizeof(float));
- 
+
     for (int j = 0; j < M; j++)
     {
         _acc[0] += _X[0] * _Y[0];
- 
+
         int          num_bins  = (N - 2) / 2;
         const float *pX_cplx   = _X + 1;
         const float *pY_cplx   = _Y + 1;
         float       *pAcc_cplx = _acc + 1;
- 
+
         while (num_bins > 0)
         {
             size_t vl = __riscv_vsetvl_e32m4(num_bins);
- 
-            /* Deinterleave X: [xr0,xi0, xr1,xi1, ...] -> v_xr, v_xi         */
-            vfloat32m4_t v_xr, v_xi;
-            VLSEG2_F32M4(v_xr, v_xi, pX_cplx, vl);
- 
-            /* Deinterleave Y: [yr0,yi0, yr1,yi1, ...] -> v_yr, v_yi         */
-            vfloat32m4_t v_yr, v_yi;
-            VLSEG2_F32M4(v_yr, v_yi, pY_cplx, vl);
- 
-            /* Deinterleave acc: [ar0,ai0, ar1,ai1, ...] -> v_accr, v_acci   */
-            vfloat32m4_t v_accr, v_acci;
-            VLSEG2_F32M4(v_accr, v_acci, pAcc_cplx, vl);
- 
-            /* Complex multiply-accumulate: acc += X * Y                      */
-            /* real: accr += xr*yr - xi*yi                                    */
+
+            /* Deinterleave X: [xr0,xi0, xr1,xi1, ...] -> v_xr, v_xi          */
+            vfloat32m4x2_t v_X  = __riscv_vlseg2e32_v_f32m4x2(pX_cplx, vl);
+            vfloat32m4_t   v_xr = __riscv_vget_v_f32m4x2_f32m4(v_X, 0);
+            vfloat32m4_t   v_xi = __riscv_vget_v_f32m4x2_f32m4(v_X, 1);
+
+            /* Deinterleave Y: [yr0,yi0, yr1,yi1, ...] -> v_yr, v_yi          */
+            vfloat32m4x2_t v_Y  = __riscv_vlseg2e32_v_f32m4x2(pY_cplx, vl);
+            vfloat32m4_t   v_yr = __riscv_vget_v_f32m4x2_f32m4(v_Y, 0);
+            vfloat32m4_t   v_yi = __riscv_vget_v_f32m4x2_f32m4(v_Y, 1);
+
+            /* Deinterleave acc: [ar0,ai0, ar1,ai1, ...] -> v_accr, v_acci    */
+            vfloat32m4x2_t v_Acc  = __riscv_vlseg2e32_v_f32m4x2(pAcc_cplx, vl);
+            vfloat32m4_t   v_accr = __riscv_vget_v_f32m4x2_f32m4(v_Acc, 0);
+            vfloat32m4_t   v_acci = __riscv_vget_v_f32m4x2_f32m4(v_Acc, 1);
+
+            /* Complex multiply-accumulate: acc += X * Y                       */
+            /* real: accr += xr*yr - xi*yi                                     */
             v_accr = __riscv_vfmacc_vv_f32m4(v_accr, v_xr, v_yr, vl);
             v_accr = __riscv_vfnmsac_vv_f32m4(v_accr, v_xi, v_yi, vl);
- 
-            /* imag: acci += xi*yr + xr*yi                                    */
+
+            /* imag: acci += xi*yr + xr*yi                                     */
             v_acci = __riscv_vfmacc_vv_f32m4(v_acci, v_xi, v_yr, vl);
             v_acci = __riscv_vfmacc_vv_f32m4(v_acci, v_xr, v_yi, vl);
- 
-            /* Interleave-store acc: (v_accr, v_acci) -> [ar0,ai0, ar1,ai1, ...] */
-            VSSEG2_F32M4(pAcc_cplx, v_accr, v_acci, vl);
- 
+
+            /* Interleave-store acc: v_accr, v_acci -> [ar0,ai0, ar1,ai1, ...] */
+            vfloat32m4x2_t v_res = __riscv_vcreate_v_f32m4x2(v_accr, v_acci);
+            __riscv_vsseg2e32_v_f32m4x2(pAcc_cplx, v_res, vl);
+
             pX_cplx   += 2 * vl;
             pY_cplx   += 2 * vl;
             pAcc_cplx += 2 * vl;
             num_bins  -= vl;
         }
- 
+
         _acc[N - 1] += _X[N - 1] * _Y[N - 1];
- 
+
         _X += N;
         _Y += N;
     }
