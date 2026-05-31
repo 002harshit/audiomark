@@ -394,6 +394,20 @@ power_spectrum_accum(const spx_word16_t *X, spx_word32_t *ps, int N)
 }
 #endif
 
+static inline void
+riscv_rvv_memset_zero(float *dst, size_t len)
+{
+    size_t       vl    = __riscv_vsetvl_e32m8(len);
+    vfloat32m8_t vzero = __riscv_vfmv_v_f_f32m8(0.0f, vl);
+    while (len > 0)
+    {
+        size_t vl = __riscv_vsetvl_e32m8(len);
+        __riscv_vse32_v_f32m8(dst, vzero, vl);
+        dst += vl;
+        len -= vl;
+    }
+}
+
 #ifdef OVERRIDE_MDF_SPECTRAL_MUL_ACCUM
 static void
 spectral_mul_accum(const spx_word16_t *X,
@@ -406,7 +420,7 @@ spectral_mul_accum(const spx_word16_t *X,
     const float *_Y   = (const float *)Y;
     float       *_acc = (float *)acc;
 
-    memset(_acc, 0, N * sizeof(float));
+    riscv_rvv_memset_zero(_acc, N);
 
     for (int j = 0; j < M; j++)
     {
