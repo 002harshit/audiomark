@@ -332,14 +332,13 @@ power_spectrum(const spx_word16_t *X, spx_word32_t *ps, int N)
     const float *pX_cplx  = _X + 1;
     float       *pPS      = _ps + 1;
 
-    ptrdiff_t stride = 8;
-
     while (num_bins > 0)
     {
         size_t vl = __riscv_vsetvl_e32m4(num_bins);
 
-        vfloat32m4_t v_re = __riscv_vlse32_v_f32m4(pX_cplx, stride, vl);
-        vfloat32m4_t v_im = __riscv_vlse32_v_f32m4(pX_cplx + 1, stride, vl);
+        vfloat32m4x2_t seg  = __riscv_vlseg2e32_v_f32m4x2(pX_cplx, vl);
+        vfloat32m4_t   v_re = __riscv_vget_v_f32m4x2_f32m4(seg, 0);
+        vfloat32m4_t   v_im = __riscv_vget_v_f32m4x2_f32m4(seg, 1);
 
         vfloat32m4_t v_mag_sq = __riscv_vfmul_vv_f32m4(v_re, v_re, vl);
         v_mag_sq = __riscv_vfmacc_vv_f32m4(v_mag_sq, v_im, v_im, vl);
@@ -368,14 +367,13 @@ power_spectrum_accum(const spx_word16_t *X, spx_word32_t *ps, int N)
     const float *pX_cplx  = _X + 1;
     float       *pPS      = _ps + 1;
 
-    ptrdiff_t stride = 8;
-
     while (num_bins > 0)
     {
         size_t vl = __riscv_vsetvl_e32m4(num_bins);
 
-        vfloat32m4_t v_re = __riscv_vlse32_v_f32m4(pX_cplx, stride, vl);
-        vfloat32m4_t v_im = __riscv_vlse32_v_f32m4(pX_cplx + 1, stride, vl);
+        vfloat32m4x2_t seg  = __riscv_vlseg2e32_v_f32m4x2(pX_cplx, vl);
+        vfloat32m4_t   v_re = __riscv_vget_v_f32m4x2_f32m4(seg, 0);
+        vfloat32m4_t   v_im = __riscv_vget_v_f32m4x2_f32m4(seg, 1);
 
         vfloat32m4_t v_mag_sq = __riscv_vfmul_vv_f32m4(v_re, v_re, vl);
         v_mag_sq = __riscv_vfmacc_vv_f32m4(v_mag_sq, v_im, v_im, vl);
@@ -431,21 +429,21 @@ spectral_mul_accum(const spx_word16_t *X,
         const float *pY_cplx   = _Y + 1;
         float       *pAcc_cplx = _acc + 1;
 
-        ptrdiff_t stride = 8;
-
         while (num_bins > 0)
         {
             size_t vl = __riscv_vsetvl_e32m4(num_bins);
 
-            vfloat32m4_t v_xr = __riscv_vlse32_v_f32m4(pX_cplx, stride, vl);
-            vfloat32m4_t v_xi = __riscv_vlse32_v_f32m4(pX_cplx + 1, stride, vl);
+            vfloat32m4x2_t seg_x = __riscv_vlseg2e32_v_f32m4x2(pX_cplx, vl);
+            vfloat32m4_t   v_xr  = __riscv_vget_v_f32m4x2_f32m4(seg_x, 0);
+            vfloat32m4_t   v_xi  = __riscv_vget_v_f32m4x2_f32m4(seg_x, 1);
 
-            vfloat32m4_t v_yr = __riscv_vlse32_v_f32m4(pY_cplx, stride, vl);
-            vfloat32m4_t v_yi = __riscv_vlse32_v_f32m4(pY_cplx + 1, stride, vl);
+            vfloat32m4x2_t seg_y = __riscv_vlseg2e32_v_f32m4x2(pY_cplx, vl);
+            vfloat32m4_t   v_yr  = __riscv_vget_v_f32m4x2_f32m4(seg_y, 0);
+            vfloat32m4_t   v_yi  = __riscv_vget_v_f32m4x2_f32m4(seg_y, 1);
 
-            vfloat32m4_t v_accr = __riscv_vlse32_v_f32m4(pAcc_cplx, stride, vl);
-            vfloat32m4_t v_acci
-                = __riscv_vlse32_v_f32m4(pAcc_cplx + 1, stride, vl);
+            vfloat32m4x2_t seg_acc = __riscv_vlseg2e32_v_f32m4x2(pAcc_cplx, vl);
+            vfloat32m4_t   v_accr  = __riscv_vget_v_f32m4x2_f32m4(seg_acc, 0);
+            vfloat32m4_t   v_acci  = __riscv_vget_v_f32m4x2_f32m4(seg_acc, 1);
 
             v_accr = __riscv_vfmacc_vv_f32m4(v_accr, v_xr, v_yr, vl);
             v_accr = __riscv_vfnmsac_vv_f32m4(v_accr, v_xi, v_yi, vl);
@@ -453,8 +451,9 @@ spectral_mul_accum(const spx_word16_t *X,
             v_acci = __riscv_vfmacc_vv_f32m4(v_acci, v_xi, v_yr, vl);
             v_acci = __riscv_vfmacc_vv_f32m4(v_acci, v_xr, v_yi, vl);
 
-            __riscv_vsse32_v_f32m4(pAcc_cplx, stride, v_accr, vl);
-            __riscv_vsse32_v_f32m4(pAcc_cplx + 1, stride, v_acci, vl);
+            seg_acc = __riscv_vset_v_f32m4_f32m4x2(seg_acc, 0, v_accr);
+            seg_acc = __riscv_vset_v_f32m4_f32m4x2(seg_acc, 1, v_acci);
+            __riscv_vsseg2e32_v_f32m4x2(pAcc_cplx, seg_acc, vl);
 
             pX_cplx += 2 * vl;
             pY_cplx += 2 * vl;
@@ -497,8 +496,6 @@ weighted_spectral_mul_conj(const spx_float_t  *w,
     const float *pY_cplx    = _Y + 1;
     float       *pProd_cplx = _prod + 1;
 
-    ptrdiff_t stride = 8;
-
     while (num_bins > 0)
     {
         size_t vl = __riscv_vsetvl_e32m4(num_bins);
@@ -506,11 +503,13 @@ weighted_spectral_mul_conj(const spx_float_t  *w,
         vfloat32m4_t v_w = __riscv_vle32_v_f32m4(pw, vl);
         v_w              = __riscv_vfmul_vf_f32m4(v_w, _p, vl);
 
-        vfloat32m4_t v_xr = __riscv_vlse32_v_f32m4(pX_cplx, stride, vl);
-        vfloat32m4_t v_xi = __riscv_vlse32_v_f32m4(pX_cplx + 1, stride, vl);
+        vfloat32m4x2_t seg_x = __riscv_vlseg2e32_v_f32m4x2(pX_cplx, vl);
+        vfloat32m4_t   v_xr  = __riscv_vget_v_f32m4x2_f32m4(seg_x, 0);
+        vfloat32m4_t   v_xi  = __riscv_vget_v_f32m4x2_f32m4(seg_x, 1);
 
-        vfloat32m4_t v_yr = __riscv_vlse32_v_f32m4(pY_cplx, stride, vl);
-        vfloat32m4_t v_yi = __riscv_vlse32_v_f32m4(pY_cplx + 1, stride, vl);
+        vfloat32m4x2_t seg_y = __riscv_vlseg2e32_v_f32m4x2(pY_cplx, vl);
+        vfloat32m4_t   v_yr  = __riscv_vget_v_f32m4x2_f32m4(seg_y, 0);
+        vfloat32m4_t   v_yi  = __riscv_vget_v_f32m4x2_f32m4(seg_y, 1);
 
         vfloat32m4_t v_re = __riscv_vfmul_vv_f32m4(v_xr, v_yr, vl);
         v_re              = __riscv_vfmacc_vv_f32m4(v_re, v_xi, v_yi, vl);
@@ -520,8 +519,10 @@ weighted_spectral_mul_conj(const spx_float_t  *w,
         v_im              = __riscv_vfnmsac_vv_f32m4(v_im, v_xi, v_yr, vl);
         v_im              = __riscv_vfmul_vv_f32m4(v_im, v_w, vl);
 
-        __riscv_vsse32_v_f32m4(pProd_cplx, stride, v_re, vl);
-        __riscv_vsse32_v_f32m4(pProd_cplx + 1, stride, v_im, vl);
+        vfloat32m4x2_t seg_prod = __riscv_vundefined_f32m4x2();
+        seg_prod = __riscv_vset_v_f32m4_f32m4x2(seg_prod, 0, v_re);
+        seg_prod = __riscv_vset_v_f32m4_f32m4x2(seg_prod, 1, v_im);
+        __riscv_vsseg2e32_v_f32m4x2(pProd_cplx, seg_prod, vl);
 
         num_bins -= vl;
         pw += vl;
