@@ -16,10 +16,11 @@
  * limitations under the License.
  */
 
+#include "rvv_support_guard.h"
+
 #include "functions.h"
 #include "support_functions.h"
 
-#include <riscv_vector.h>
 #include <stdint.h>
 #include <stdbool.h>
 
