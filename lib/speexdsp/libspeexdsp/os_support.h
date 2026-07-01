@@ -48,6 +48,9 @@
 /** Speex wrapper for calloc. To do your own dynamic allocation, all you need to do is replace this function, speex_realloc and speex_free
     NOTE: speex_alloc needs to CLEAR THE MEMORY */
 #ifndef OVERRIDE_SPEEX_ALLOC
+
+#warning "using calloc"
+
 static inline void *speex_alloc (int size)
 {
    /* WARNING: this is not equivalent to malloc(). If you want to use malloc()
