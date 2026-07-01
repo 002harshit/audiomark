@@ -19,4 +19,9 @@
 
 #define NN_KERNEL_COLS 7
 
+/* weights packed col-major [K][out_ch] by pack_weights_col_major(), use
+ * NN_FILTER_ELEM instead of filter_data[ch*num_col_a+k] */
+#define NN_FILTER_ELEM(filter_data, k, ch, num_col_a, out_ch) \
+    ((filter_data)[(size_t)(k) * (out_ch) + (ch)])
+
 #endif

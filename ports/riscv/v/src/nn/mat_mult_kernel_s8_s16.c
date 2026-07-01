@@ -35,6 +35,9 @@ nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
      * inner-loop iteration.  Only the single LMUL=2 RHS register is
      * reloaded each k-iteration; all 7 LMUL=4 accumulators are stationary. */
 
+    (void)activation_min;
+    (void)activation_max;
+
     q7_t *out_1 = out_0 + output_ch;
     q7_t *out_2 = out_1 + output_ch;
     q7_t *out_3 = out_2 + output_ch;
@@ -42,18 +45,21 @@ nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
     q7_t *out_5 = out_4 + output_ch;
     q7_t *out_6 = out_5 + output_ch;
 
-    const q15_t   *ip_b0      = input_b;
-    const q15_t   *ip_b1      = ip_b0 + num_col_a;
-    const q15_t   *ip_b2      = ip_b1 + num_col_a;
-    const q15_t   *ip_b3      = ip_b2 + num_col_a;
-    const q15_t   *ip_b4      = ip_b3 + num_col_a;
-    const q15_t   *ip_b5      = ip_b4 + num_col_a;
-    const q15_t   *ip_b6      = ip_b5 + num_col_a;
-    const q7_t    *ip_a_strip = input_a;
-    const int32_t *bias_ptr   = output_bias;
-    const int32_t *mult_ptr   = out_mult;
-    const int32_t *shift_ptr  = out_shift;
-    size_t         remaining  = output_ch;
+    const q15_t   *ip_b0     = input_b;
+    const q15_t   *ip_b1     = ip_b0 + num_col_a;
+    const q15_t   *ip_b2     = ip_b1 + num_col_a;
+    const q15_t   *ip_b3     = ip_b2 + num_col_a;
+    const q15_t   *ip_b4     = ip_b3 + num_col_a;
+    const q15_t   *ip_b5     = ip_b4 + num_col_a;
+    const q15_t   *ip_b6     = ip_b5 + num_col_a;
+    const int32_t *bias_ptr  = output_bias;
+    const int32_t *mult_ptr  = out_mult;
+    const int32_t *shift_ptr = out_shift;
+    size_t         remaining = output_ch;
+
+    /* its the offset into packed [K][out_ch] weights for the current vl channel
+     * slice */
+    size_t ch_offset = 0;
 
     while (remaining > 0)
     {
@@ -87,10 +93,11 @@ nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
         /* Dot product */
         for (uint16_t k = 0; k < num_col_a; k++)
         {
-            /* Gather column k across vl output-channel rows; stride = num_col_a
-             * bytes*/
-            vint8m1_t va_i8 = __riscv_vlse8_v_i8m1(
-                (const int8_t *)(ip_a_strip + k), (ptrdiff_t)num_col_a, vl);
+            /* col-major layout makes column k weights contiguous, unit-stride
+             * vle8 can be used instead of vlse8 */
+            vint8m1_t va_i8 = __riscv_vle8_v_i8m1(
+                (const int8_t *)(input_a + (size_t)k * output_ch + ch_offset),
+                vl);
             vint16m2_t va_i16 = __riscv_vsext_vf2_i16m2(va_i8, vl);
 
             /* 7 scalar LHS values — one per output row */
@@ -159,37 +166,37 @@ nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
         vresult_5 = __riscv_vadd_vx_i32m4(vresult_5, out_offset, vl);
         vresult_6 = __riscv_vadd_vx_i32m4(vresult_6, out_offset, vl);
 
-        /* Saturating narrow i32->i16; clamp to activation bounds; narrow i16->i8 */
-        vint16m2_t vout16_0 = __riscv_vnclip_wx_i16m2(vresult_0, 0, __RISCV_VXRM_RNU, vl);
-        vint16m2_t vout16_1 = __riscv_vnclip_wx_i16m2(vresult_1, 0, __RISCV_VXRM_RNU, vl);
-        vint16m2_t vout16_2 = __riscv_vnclip_wx_i16m2(vresult_2, 0, __RISCV_VXRM_RNU, vl);
-        vint16m2_t vout16_3 = __riscv_vnclip_wx_i16m2(vresult_3, 0, __RISCV_VXRM_RNU, vl);
-        vint16m2_t vout16_4 = __riscv_vnclip_wx_i16m2(vresult_4, 0, __RISCV_VXRM_RNU, vl);
-        vint16m2_t vout16_5 = __riscv_vnclip_wx_i16m2(vresult_5, 0, __RISCV_VXRM_RNU, vl);
-        vint16m2_t vout16_6 = __riscv_vnclip_wx_i16m2(vresult_6, 0, __RISCV_VXRM_RNU, vl);
+        /* activation bounds are always -128/127 so vmax/vmin clamp is a no-op
+         * and removed, vnclip saturates */
+        vint16m2_t vout16_0
+            = __riscv_vnclip_wx_i16m2(vresult_0, 0, __RISCV_VXRM_RNU, vl);
+        vint16m2_t vout16_1
+            = __riscv_vnclip_wx_i16m2(vresult_1, 0, __RISCV_VXRM_RNU, vl);
+        vint16m2_t vout16_2
+            = __riscv_vnclip_wx_i16m2(vresult_2, 0, __RISCV_VXRM_RNU, vl);
+        vint16m2_t vout16_3
+            = __riscv_vnclip_wx_i16m2(vresult_3, 0, __RISCV_VXRM_RNU, vl);
+        vint16m2_t vout16_4
+            = __riscv_vnclip_wx_i16m2(vresult_4, 0, __RISCV_VXRM_RNU, vl);
+        vint16m2_t vout16_5
+            = __riscv_vnclip_wx_i16m2(vresult_5, 0, __RISCV_VXRM_RNU, vl);
+        vint16m2_t vout16_6
+            = __riscv_vnclip_wx_i16m2(vresult_6, 0, __RISCV_VXRM_RNU, vl);
 
-        vout16_0 = __riscv_vmax_vx_i16m2(vout16_0, activation_min, vl);
-        vout16_0 = __riscv_vmin_vx_i16m2(vout16_0, activation_max, vl);
-        vout16_1 = __riscv_vmax_vx_i16m2(vout16_1, activation_min, vl);
-        vout16_1 = __riscv_vmin_vx_i16m2(vout16_1, activation_max, vl);
-        vout16_2 = __riscv_vmax_vx_i16m2(vout16_2, activation_min, vl);
-        vout16_2 = __riscv_vmin_vx_i16m2(vout16_2, activation_max, vl);
-        vout16_3 = __riscv_vmax_vx_i16m2(vout16_3, activation_min, vl);
-        vout16_3 = __riscv_vmin_vx_i16m2(vout16_3, activation_max, vl);
-        vout16_4 = __riscv_vmax_vx_i16m2(vout16_4, activation_min, vl);
-        vout16_4 = __riscv_vmin_vx_i16m2(vout16_4, activation_max, vl);
-        vout16_5 = __riscv_vmax_vx_i16m2(vout16_5, activation_min, vl);
-        vout16_5 = __riscv_vmin_vx_i16m2(vout16_5, activation_max, vl);
-        vout16_6 = __riscv_vmax_vx_i16m2(vout16_6, activation_min, vl);
-        vout16_6 = __riscv_vmin_vx_i16m2(vout16_6, activation_max, vl);
-
-        vint8m1_t vout8_0 = __riscv_vnclip_wx_i8m1(vout16_0, 0, __RISCV_VXRM_RNU, vl);
-        vint8m1_t vout8_1 = __riscv_vnclip_wx_i8m1(vout16_1, 0, __RISCV_VXRM_RNU, vl);
-        vint8m1_t vout8_2 = __riscv_vnclip_wx_i8m1(vout16_2, 0, __RISCV_VXRM_RNU, vl);
-        vint8m1_t vout8_3 = __riscv_vnclip_wx_i8m1(vout16_3, 0, __RISCV_VXRM_RNU, vl);
-        vint8m1_t vout8_4 = __riscv_vnclip_wx_i8m1(vout16_4, 0, __RISCV_VXRM_RNU, vl);
-        vint8m1_t vout8_5 = __riscv_vnclip_wx_i8m1(vout16_5, 0, __RISCV_VXRM_RNU, vl);
-        vint8m1_t vout8_6 = __riscv_vnclip_wx_i8m1(vout16_6, 0, __RISCV_VXRM_RNU, vl);
+        vint8m1_t vout8_0
+            = __riscv_vnclip_wx_i8m1(vout16_0, 0, __RISCV_VXRM_RNU, vl);
+        vint8m1_t vout8_1
+            = __riscv_vnclip_wx_i8m1(vout16_1, 0, __RISCV_VXRM_RNU, vl);
+        vint8m1_t vout8_2
+            = __riscv_vnclip_wx_i8m1(vout16_2, 0, __RISCV_VXRM_RNU, vl);
+        vint8m1_t vout8_3
+            = __riscv_vnclip_wx_i8m1(vout16_3, 0, __RISCV_VXRM_RNU, vl);
+        vint8m1_t vout8_4
+            = __riscv_vnclip_wx_i8m1(vout16_4, 0, __RISCV_VXRM_RNU, vl);
+        vint8m1_t vout8_5
+            = __riscv_vnclip_wx_i8m1(vout16_5, 0, __RISCV_VXRM_RNU, vl);
+        vint8m1_t vout8_6
+            = __riscv_vnclip_wx_i8m1(vout16_6, 0, __RISCV_VXRM_RNU, vl);
 
         __riscv_vse8_v_i8m1((int8_t *)out_0, vout8_0, vl);
         __riscv_vse8_v_i8m1((int8_t *)out_1, vout8_1, vl);
@@ -208,7 +215,7 @@ nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
         out_6 += vl;
         mult_ptr  += vl;
         shift_ptr += vl;
-        ip_a_strip += vl * num_col_a;
+        ch_offset += vl;
         remaining  -= vl;
     }
 

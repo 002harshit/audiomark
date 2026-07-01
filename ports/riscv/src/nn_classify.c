@@ -17,6 +17,7 @@
 #include "ee_audiomark.h"
 #include "ee_api.h"
 #include "nn/functions.h"
+#include <nn/weight_config.h>
 
 #include <stdint.h>
 
@@ -138,7 +139,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
                                     &in_out_dim_0,
                                     in_data,
                                     &conv_filter_dims,
-                                    ds_cnn_s_layer_1_conv2d_weights,
+                                    NN_CONV_WEIGHTS_0,
                                     &bias_dims,
                                     ds_cnn_s_layer_1_conv2d_bias,
                                     &in_out_dim_1,
@@ -212,7 +213,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
                              &in_out_dim_0,
                              in_out_buf_1,
                              &conv_filter_dims,
-                             ds_cnn_s_layer_3_conv2d_weights,
+                             NN_CONV_WEIGHTS_2,
                              &bias_dims,
                              ds_cnn_s_layer_3_conv2d_bias,
                              &in_out_dim_1,
@@ -248,7 +249,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
                              &in_out_dim_0,
                              in_out_buf_1,
                              &conv_filter_dims,
-                             ds_cnn_s_layer_5_conv2d_weights,
+                             NN_CONV_WEIGHTS_4,
                              &bias_dims,
                              ds_cnn_s_layer_5_conv2d_bias,
                              &in_out_dim_1,
@@ -283,7 +284,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
                              &in_out_dim_0,
                              in_out_buf_1,
                              &conv_filter_dims,
-                             ds_cnn_s_layer_7_conv2d_weights,
+                             NN_CONV_WEIGHTS_6,
                              &bias_dims,
                              ds_cnn_s_layer_7_conv2d_bias,
                              &in_out_dim_1,
@@ -318,7 +319,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
                              &in_out_dim_0,
                              in_out_buf_1,
                              &conv_filter_dims,
-                             ds_cnn_s_layer_9_conv2d_weights,
+                             NN_CONV_WEIGHTS_8,
                              &bias_dims,
                              ds_cnn_s_layer_9_conv2d_bias,
                              &in_out_dim_1,

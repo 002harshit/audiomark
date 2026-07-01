@@ -140,17 +140,16 @@ nn_convolve_s8(const nn_context                  *ctx,
 
         for (int32_t p = 0; p < leftover_pixels; p++, patch += num_col_a)
         {
-            const q7_t *ker_a = filter_data;
-
             for (int32_t i = 0; i < output_ch; i++)
             {
-                q31_t        sum       = bias_data ? bias_data[i] : 0;
-                const q15_t *col       = patch;
-                uint16_t     col_count = num_col_a;
+                q31_t        sum = bias_data ? bias_data[i] : 0;
+                const q15_t *col = patch;
 
-                while (col_count--)
+                for (uint16_t k = 0; k < num_col_a; k++)
                 {
-                    sum += (*ker_a++) * (*col++);
+                    sum += NN_FILTER_ELEM(
+                               filter_data, k, i, num_col_a, output_ch)
+                           * col[k];
                 }
 
                 sum = nn_requantize(sum, output_mult[i], output_shift[i]);

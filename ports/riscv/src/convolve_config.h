@@ -22,4 +22,9 @@
  */
 #define NN_KERNEL_COLS 2
 
+/* row-major [out_ch][K] layout. Use NN_FILTER_ELEM instead of filter_data[...]
+ */
+#define NN_FILTER_ELEM(filter_data, k, ch, num_col_a, out_ch) \
+    ((filter_data)[(size_t)(ch) * (num_col_a) + (k)])
+
 #endif
