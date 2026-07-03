@@ -17,6 +17,8 @@
 #ifndef RVV_MDF_OPT_CONFIG_H
 #define RVV_MDF_OPT_CONFIG_H
 
+#if defined(__riscv_v_elen_fp) && __riscv_v_elen_fp >= 32
+
 #define OVERRIDE_MDF_INNER_PROD
 #define OVERRIDE_MDF_POWER_SPECTRUM
 #define OVERRIDE_MDF_POWER_SPECTRUM_ACCUM
@@ -36,5 +38,7 @@
 #define OVERRIDE_MDF_FILTERED_SPEC_AD_XCORR
 #define OVERRIDE_MDF_NORM_LEARN_RATE_CALC
 #define OVERRIDE_MDF_CONVERG_LEARN_RATE_CALC
+
+#endif
 
 #endif /* RVV_MDF_OPT_CONFIG_H */
