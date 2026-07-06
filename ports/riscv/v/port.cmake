@@ -12,12 +12,10 @@ include_directories(
 file(WRITE ${CMAKE_BINARY_DIR}/probe_rvv_fp.c
 "
 #include <riscv_vector.h>
-void probe(float *p, size_t n) {
-    size_t vl = __riscv_vsetvl_e32m1(n);
-    vfloat32m1_t v = __riscv_vle32_v_f32m1(p, vl);
-    v = __riscv_vfmul_vf_f32m1(v, 2.0f, vl);
-    __riscv_vse32_v_f32m1(p, v, vl);
-}
+#if !defined(__riscv_v_elen_fp) || __riscv_v_elen_fp < 32
+#error \"RVV floating-point support (__riscv_v_elen_fp >= 32) not available\"
+#endif
+int main(void) { return 0; }
 ")
 
 try_compile(RISCV_HAS_VECTOR_FP
@@ -27,9 +25,21 @@ try_compile(RISCV_HAS_VECTOR_FP
     COMPILE_DEFINITIONS "${CMAKE_C_FLAGS}"
 )
 
+message(STATUS "CMAKE_C_COMPILER = '${CMAKE_C_COMPILER}'")
+message(STATUS "CMAKE_C_FLAGS at probe time = '${CMAKE_C_FLAGS}'")
+message(STATUS "RISCV_HAS_VECTOR_FP = ${RISCV_HAS_VECTOR_FP}")
+
 add_definitions(-DUSE_RISCV_DSP)
 
+# for mdf_opt_rvv.c
+add_compile_options(-include v/src/mdf_opt_config.h)
+
 if(RISCV_HAS_VECTOR_FP)
+    add_compile_options(
+        -includeanr_opt_config.h
+        -includefb_opt_config.h
+    )
+
     set(F32_SOURCES
         ${PORT_DIR}/src/dsp/cfft_f32.c
         ${PORT_DIR}/src/dsp/rfft_fast_f32.c
@@ -81,7 +91,7 @@ set(PORT_SOURCE
     ${PORT_DIR}/src/nn/depthwise_conv_s8.c
     ${PORT_DIR}/../src/nn/fully_connected_s8.c
     ${PORT_DIR}/src/nn/mat_mult_kernel_s8_s16.c
-    ${PORT_DIR}/../src/nn/q7_to_q15_with_offset.c
+    ${PORT_DIR}/src/nn/q7_to_q15_with_offset.c
     ${PORT_DIR}/../src/nn/softmax_row12_s8.c
     ${PORT_DIR}/../src/nn/softmax_luts.c
     ${PORT_DIR}/../src/nn/vec_mat_mult_t_s8.c
