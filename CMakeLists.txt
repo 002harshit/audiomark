@@ -4,7 +4,7 @@ project(audiomark
 	LANGUAGES C
 	VERSION 1.0.0)
 
-set(CMAKE_C_FLAGS "-O2")
+# set(CMAKE_C_FLAGS "-O2")
 
 include_directories(lib/speexdsp)
 include_directories(lib/speexdsp/include)
