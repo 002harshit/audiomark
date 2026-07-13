@@ -912,9 +912,9 @@ EXPORT void speex_echo_cancellation(SpeexEchoState *st, const spx_int16_t *in, c
    for (i=0;i<=st->frame_size;i++)
       st->Rf[i] = st->Yf[i] = st->Xf[i] = 0;
 #else
-   vect_clear(0, st->Rf, st->frame_size + 1);
-   vect_clear(0, st->Yf, st->frame_size + 1);
-   vect_clear(0, st->Xf, st->frame_size + 1);
+   vect_clear(st->Rf, st->frame_size + 1);
+   vect_clear(st->Yf, st->frame_size + 1);
+   vect_clear(st->Xf, st->frame_size + 1);
 #endif
 
    Dbf = 0;
@@ -1088,7 +1088,7 @@ EXPORT void speex_echo_cancellation(SpeexEchoState *st, const spx_int16_t *in, c
       for (i=0;i<st->frame_size;i++)
          st->y[i+chan*N] = 0;
 #else
-      vect_clear(0, & st->y[chan*N], st->frame_size);
+      vect_clear(& st->y[chan*N], st->frame_size);
 #endif
       spx_fft(st->fft_table, st->y+chan*N, st->Y+chan*N);
 
