@@ -416,6 +416,16 @@ riscv_rvv_memset_zero(float *dst, size_t len)
     }
 }
 
+#ifdef OVERRIDE_MDF_VEC_CLEAR
+
+static void
+vect_clear(spx_word16_t *pDst, uint32_t blockSize)
+{
+    riscv_rvv_memset_zero((float *)pDst, (size_t)blockSize);
+}
+
+#endif
+
 #ifdef OVERRIDE_MDF_SPECTRAL_MUL_ACCUM
 static void
 spectral_mul_accum(const spx_word16_t *X,
