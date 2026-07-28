@@ -410,7 +410,6 @@ void spx_fft(void *table, spx_word16_t *in, spx_word16_t *out)
   out[0]   = scratchOut[0] / (float)N;
   out[N-1] = scratchOut[1] / (float)N;
 
-  // TODO: rescale using riscv_scale_f32(scratchOut + 2, 1.0f/(float)N, out + 1, N-2);
   for (int i = 1; i < N - 1; i++)
     out[i] = scratchOut[i + 1] / (float)N;
 }
@@ -429,7 +428,6 @@ void spx_ifft(void *table, spx_word16_t *in, spx_word16_t *out)
 
   riscv_rfft_fast_f32(&t->inst, scratchIn, scratchOut, 1);
 
-  // TODO: rescale using riscv_scale_f32(scratchOut, (float)N, out, N);
   for (int i = 0; i < N; i++)
     out[i] = scratchOut[i] * (float)N;
 }
