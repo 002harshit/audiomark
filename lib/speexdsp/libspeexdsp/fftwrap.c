@@ -367,8 +367,6 @@ void spx_fft(void *table, spx_word16_t *in, spx_word16_t *out)
 #include "dsp_types.h"
 #include "dsp.h"
 
-// TODO: handle FIXED_POINT
-
 struct riscv_fft_config {
   riscv_rfft_fast_instance inst;
   spx_word16_t *scratchIn;
