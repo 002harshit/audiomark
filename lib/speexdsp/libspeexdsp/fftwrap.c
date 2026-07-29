@@ -407,11 +407,12 @@ void spx_fft(void *table, spx_word16_t *in, spx_word16_t *out)
   memcpy(scratchIn, in, N * sizeof(spx_word16_t));
   riscv_rfft_fast_f32(&t->inst, scratchIn, scratchOut, 0);
 
-  out[0]   = scratchOut[0] / (float)N;
-  out[N-1] = scratchOut[1] / (float)N;
+  float recpN = 1.0/N;  /* pre-computing reciprocal to avoid division in loop */
+  out[0]   = scratchOut[0] * recpN;
+  out[N-1] = scratchOut[1] * recpN;
 
   for (int i = 1; i < N - 1; i++)
-    out[i] = scratchOut[i + 1] / (float)N;
+    out[i] = scratchOut[i + 1] * recpN;
 }
 
 void spx_ifft(void *table, spx_word16_t *in, spx_word16_t *out)
